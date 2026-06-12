@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Eleição da Rainha da Primavera - Sistema com Cytoscape</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Cytoscape.js -->
+    <script src="https://unpkg.com/cytoscape@3.25.0/dist/cytoscape.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 15px;
+        }
+        
+        .layout-tres-colunas {
+            display: flex;
+            gap: 25px;
+            height: calc(100vh - 30px);
+            min-height: 700px;
+        }
+        
+        .coluna-esquerda, .coluna-direita {
+            flex: 0.7;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(5px);
+            overflow-y: auto;
+        }
+        
+        .coluna-central {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 350px;
+        }
+        
+        .titulo-coluna {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .sala-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .sala-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .sala-piscando {
+            animation: piscar 0.6s ease-in-out infinite;
+            border-color: #e74c3c !important;
+            background: #fff5f5 !important;
+        }
+        
+        @keyframes piscar {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            50% { box-shadow: 0 0 0 8px rgba(231, 76, 60, 0); }
+        }
+        
+        .sala-header {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .contador-sala {
+            font-size: 0.8rem;
+            margin: 8px 0;
+            padding: 5px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .btn-voto {
+            margin: 2px;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+        
+        .btn-enviar-sala {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            width: 100%;
+        }
+        
+        .display-porcentagem {
+            background: linear-gradient(135deg, #2c3e50, #1a252f);
+            border-radius: 20px;
+            padding: 15px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 2px solid #f1c40f;
+        }
+        
+        .candidata-card {
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .candidata-vermelha {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        
+        .candidata-azul {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+        
+        .percentual-texto {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        
+        .progress {
+            height: 25px;
+            border-radius: 15px;
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .progress-bar {
+            font-size: 0.8rem;
+            line-height: 25px;
+        }
+        
+        .cytoscape-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        
+        #cy {
+            width: 100%;
+            height: 280px;
+            border-radius: 15px;
+            background: #f8f9fa;
+        }
+        
+        .painel-diretor {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            border-radius: 20px;
+            padding: 15px;
+            color: white;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        
+        .status-alert {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        
+        .coluna-esquerda::-webkit-scrollbar,
+        .coluna-direita::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .coluna-esquerda::-webkit-scrollbar-track,
+        .coluna-direita::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+        }
+        
+        .coluna-esquerda::-webkit-scrollbar-thumb,
+        .coluna-direita::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.5);
+            border-radius: 10px;
+        }
+        
+        @media (max-width: 900px) {
+            .layout-tres-colunas {
+                flex-direction: column;
+                height: auto;
+            }
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 15px;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.7rem;
+        }
+        
+        .vencedor-destaque {
+            animation: celebrar 0.5s ease-in-out 3;
+        }
+        
+        @keyframes celebrar {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); text-shadow: 0 0 10px gold; }
+        }
+        
+        .info-ultima-sala {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 8px;
+            margin-top: 10px;
+            font-size: 0.75rem;
+        }
+        
+        .badge-ultima {
+            background: #e74c3c;
+            color: white;
+            font-size: 0.7rem;
+            margin-left: 5px;
+        }
+        
+        /* Slider de percentual */
+        .slider-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        .slider-container input {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .percentual-slider {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout-tres-colunas">
+        
+        <!-- COLUNA ESQUERDA - SALAS 1 a 5 -->
+        <div class="coluna-esquerda">
+            <div class="titulo-coluna">
+                <i class="fas fa-door-open"></i> SALAS 01 - 05
+            </div>
+            <div id="salasEsquerda"></div>
+        </div>
+        
+        <!-- COLUNA CENTRAL -->
+        <div class="coluna-central">
+            <div class="display-porcentagem">
+                <h5 class="text-center mb-2"><i class="fas fa-chart-pie"></i> APURAÇÃO PARCIAL</h5>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="candidata-card candidata-vermelha" id="cardVermelha">
+                            <small><i class="fas fa-chess-queen"></i> Filha da Cumade</small>
+                            <div class="percentual-texto" id="percentVermelho">0%</div>
+                            <div class="progress">
+                                <div id="progressVermelho" class="progress-bar bg-danger" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="candidata-card candidata-azul" id="cardAzul">
+                            <small><i class="fas fa-chess-queen"></i> Candidata Azul</small>
+                            <div class="percentual-texto" id="percentAzul">0%</div>
+                            <div class="progress">
+                                <div id="progressAzul" class="progress-bar bg-primary" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="status-alert mt-2" id="statusAlert">
+                    <i class="fas fa-info-circle"></i> Sistema pronto. 7 votos/sala.
+                </div>
+            </div>
+            
+            <div class="cytoscape-container">
+                <div id="cy"></div>
+            </div>
+            
+            <div class="painel-diretor">
+                <h5 class="text-center"><i class="fas fa-user-tie"></i> DIRETOR</h5>
+                <div id="diretorStatus" class="status-alert">
+                    <strong>Aguardando votos...</strong>
+                </div>
+                
+                <div id="apuracaoFinalPanel" style="display: none;" class="mb-2">
+                    <div class="info-ultima-sala text-center" id="infoUltimaSala"></div>
+                    
+                    <div class="slider-container">
+                        <label class="form-label text-center d-block">🎯 Escolha o percentual final da vencedora:</label>
+                        <input type="range" id="percentualFinal" min="50" max="90" value="55" step="1" class="form-range">
+                        <div class="percentual-slider" id="percentualExibido">55%</div>
+                    </div>
+                    
+                    <select id="selectVencedora" class="form-select form-select-sm mb-2 mt-2">
+                        <option value="VERMELHA">🎭 Filha da Cumade (Vermelha)</option>
+                        <option value="AZUL">💙 Candidata Azul</option>
+                    </select>
+                    <button class="btn btn-danger btn-sm w-100" id="btnApuracaoFinal">
+                        <i class="fas fa-crown"></i> DECRETAR VENCEDORA
+                    </button>
+                    <small class="text-center d-block mt-1">⚠️ Poder supremo do diretor - resultado final será definido agora</small>
+                </div>
+                
+                <button class="btn btn-success btn-sm w-100 mb-2" id="btnEncerrar" disabled>
+                    <i class="fas fa-vote-yea"></i> Encerrar Eleição
+                </button>
+                <button class="btn btn-secondary btn-sm w-100" id="btnLimparVotos">
+                    <i class="fas fa-eraser"></i> Limpar Votos das Salas
+                </button>
+            </div>
+        </div>
+        
+        <!-- COLUNA DIREITA - SALAS 6 a 10 -->
+        <div class="coluna-direita">
+            <div class="titulo-coluna">
+                <i class="fas fa-door-open"></i> SALAS 06 - 10
+            </div>
+            <div id="salasDireita"></div>
+        </div>
+    </div>
+    <footer>
+        <i class="fas fa-gavel"></i> Sistema eletrônico de votação - O Diretor tem a palavra final
+    </footer>
+
+    <script>
+        // ==================== CONFIGURAÇÃO ====================
+        const TOTAL_SALAS = 10;
+        const MAX_VOTOS_POR_SALA = 7;
+        const CANDIDATA_VERMELHA = "VERMELHA";
+        const CANDIDATA_AZUL = "AZUL";
+        
+        let salas = [];
+        let votosEnviados = 0;
+        let totalVermelho = 0;
+        let totalAzul = 0;
+        let ultimaSala = null;
+        let apuracaoFinalRealizada = false;
+        let eleicaoEncerrada = false;
+        let cytoscapeGraph = null;
+        
+        let votosReaisUltimaSala = { vermelho: 0, azul: 0 };
+        
+        // ==================== INICIALIZAR SALAS ====================
+        function inicializarSalas() {
+            salas = [];
+            for (let i = 1; i <= TOTAL_SALAS; i++) {
+                salas.push({
+                    id: i,
+                    votosVermelho: 0,
+                    votosAzul: 0,
+                    enviado: false,
+                    totalVotos: 0
+                });
+            }
+        }
+        
+        // ==================== CYTOSCAPE ====================
+        function inicializarCytoscape() {
+            const elements = [];
+            
+            for (let i = 1; i <= TOTAL_SALAS; i++) {
+                let x, y;
+                if (i <= 5) {
+                    x = 150;
+                    y = 30 + i * 35;
+                } else {
+                    x = 350;
+                    y = 30 + (i - 5) * 35;
+                }
+                
+                elements.push({
+                    data: { id: `sala${i}`, label: `Sala ${i}` },
+                    position: { x: x, y: y }
+                });
+            }
+            
+            elements.push({
+                data: { id: 'diretor', label: 'DIRETOR' },
+                position: { x: 250, y: 250 }
+            });
+            
+            for (let i = 1; i <= TOTAL_SALAS; i++) {
+                elements.push({
+                    data: { id: `edge${i}`, source: `sala${i}`, target: 'diretor' }
+                });
+            }
+            
+            cytoscapeGraph = cytoscape({
+                container: document.getElementById('cy'),
+                elements: elements,
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'background-color': '#3498db',
+                            'label': 'data(label)',
+                            'text-valign': 'center',
+                            'text-halign': 'center',
+                            'font-size': '10px',
+                            'width': '45px',
+                            'height': '45px',
+                            'border-width': 2,
+                            'border-color': '#2c3e50'
+                        }
+                    },
+                    {
+                        selector: 'node[id="diretor"]',
+                        style: {
+                            'background-color': '#e67e22',
+                            'width': '65px',
+                            'height': '65px',
+                            'font-size': '10px',
+                            'font-weight': 'bold'
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 2,
+                            'line-color': '#95a5a6',
+                            'target-arrow-color': '#95a5a6',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier'
+                        }
+                    }
+                ],
+                layout: { name: 'preset' }
+            });
+        }
+        
+        function animarVoto(salaId, candidata) {
+            if (!cytoscapeGraph) return;
+            
+            const sourceNode = cytoscapeGraph.$(`#sala${salaId}`);
+            const targetNode = cytoscapeGraph.$('#diretor');
+            
+            if (!sourceNode || !targetNode) return;
+            
+            const startPos = sourceNode.position();
+            const endPos = targetNode.position();
+            const tempNodeId = `voto_${Date.now()}_${Math.random()}`;
+            
+            cytoscapeGraph.add({
+                data: { id: tempNodeId },
+                position: { x: startPos.x, y: startPos.y },
+                style: {
+                    'background-color': candidata === CANDIDATA_VERMELHA ? '#e74c3c' : '#3498db',
+                    'width': 12,
+                    'height': 12,
+                    'shape': 'star'
+                }
+            });
+            
+            const tempNode = cytoscapeGraph.$(`#${tempNodeId}`);
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 0.08;
+                if (progress >= 1) {
+                    clearInterval(interval);
+                    if (cytoscapeGraph.$(`#${tempNodeId}`).length) {
+                        cytoscapeGraph.remove(tempNode);
+                    }
+                } else {
+                    const x = startPos.x + (endPos.x - startPos.x) * progress;
+                    const y = startPos.y + (endPos.y - startPos.y) * progress;
+                    tempNode.position({ x, y });
+                }
+            }, 20);
+        }
+        
+        // ==================== RENDERIZAR SALAS ====================
+        function renderizarSalas() {
+            const containerEsq = document.getElementById('salasEsquerda');
+            const containerDir = document.getElementById('salasDireita');
+            
+            if (!containerEsq || !containerDir) return;
+            
+            containerEsq.innerHTML = '';
+            containerDir.innerHTML = '';
+            
+            salas.forEach((sala) => {
+                const salaDiv = document.createElement('div');
+                salaDiv.className = 'sala-card';
+                
+                const isUltimaPendente = ultimaSala && sala.id === ultimaSala.id && !apuracaoFinalRealizada;
+                if (isUltimaPendente) {
+                    salaDiv.classList.add('sala-piscando');
+                }
+                
+                const votosRestantes = MAX_VOTOS_POR_SALA - sala.totalVotos;
+                const desabilitado = sala.enviado || eleicaoEncerrada || apuracaoFinalRealizada || (ultimaSala && sala.id === ultimaSala.id);
+                
+                salaDiv.innerHTML = `
+                    <div class="sala-header">
+                        <i class="fas fa-chalkboard-user"></i> Sala ${sala.id}
+                        ${ultimaSala && sala.id === ultimaSala.id ? ' <span class="badge-ultima badge">ÚLTIMA</span>' : ''}
+                    </div>
+                    <div class="contador-sala">
+                        <span class="badge bg-danger">🔴 ${sala.votosVermelho}</span>
+                        <span class="badge bg-primary">🔵 ${sala.votosAzul}</span>
+                        <span class="badge bg-secondary">📊 ${votosRestantes}</span>
+                    </div>
+                    <div>
+                        <button class="btn btn-danger btn-sm btn-voto" ${desabilitado || sala.totalVotos >= MAX_VOTOS_POR_SALA ? 'disabled' : ''} onclick="adicionarVoto(${sala.id}, '${CANDIDATA_VERMELHA}')">
+                            <i class="fas fa-plus"></i> 🔴
+                        </button>
+                        <button class="btn btn-primary btn-sm btn-voto" ${desabilitado || sala.totalVotos >= MAX_VOTOS_POR_SALA ? 'disabled' : ''} onclick="adicionarVoto(${sala.id}, '${CANDIDATA_AZUL}')">
+                            <i class="fas fa-plus"></i> 🔵
+                        </button>
+                    </div>
+                    <button class="btn btn-success btn-sm btn-enviar-sala" ${desabilitado || sala.totalVotos === 0 ? 'disabled' : ''} onclick="enviarVotos(${sala.id})">
+                        <i class="fas fa-paper-plane"></i> Enviar (${sala.totalVotos})
+                    </button>
+                    ${sala.enviado ? '<div class="text-success small text-center mt-1"><i class="fas fa-check-circle"></i> Enviado</div>' : ''}
+                `;
+                
+                if (sala.id <= 5) {
+                    containerEsq.appendChild(salaDiv);
+                } else {
+                    containerDir.appendChild(salaDiv);
+                }
+            });
+        }
+        
+        function adicionarVoto(salaId, candidata) {
+            const sala = salas.find(s => s.id === salaId);
+            
+            if (!sala) return;
+            
+            if (sala.enviado) {
+                alert(`Sala ${salaId} já enviou os votos!`);
+                return;
+            }
+            if (eleicaoEncerrada) {
+                alert("Eleição já encerrada!");
+                return;
+            }
+            if (apuracaoFinalRealizada) {
+                alert("Apuração final já realizada!");
+                return;
+            }
+            if (ultimaSala && sala.id === ultimaSala.id) {
+                alert(`Sala ${salaId} é a última sala. O diretor irá definir o resultado final.`);
+                return;
+            }
+            if (sala.totalVotos >= MAX_VOTOS_POR_SALA) {
+                alert(`Sala ${salaId} já tem ${MAX_VOTOS_POR_SALA} votos!`);
+                return;
+            }
+            
+            if (candidata === CANDIDATA_VERMELHA) {
+                sala.votosVermelho++;
+            } else {
+                sala.votosAzul++;
+            }
+            sala.totalVotos++;
+            
+            renderizarSalas();
+            atualizarStatusDiretor();
+        }
+        
+        // ==================== ENVIAR VOTOS ====================
+        async function enviarVotos(salaId) {
+            const sala = salas.find(s => s.id === salaId);
+            
+            if (!sala) return;
+            
+            if (sala.enviado) return alert(`Sala ${salaId} já enviou!`);
+            if (eleicaoEncerrada) return alert("Eleição encerrada!");
+            if (apuracaoFinalRealizada) return alert("Apuração final já realizada!");
+            if (sala.totalVotos === 0) return alert(`Sala ${salaId} não tem votos!`);
+            
+            for (let i = 0; i < sala.votosVermelho; i++) {
+                await new Promise(resolve => {
+                    animarVoto(salaId, CANDIDATA_VERMELHA);
+                    setTimeout(resolve, 100);
+                });
+            }
+            for (let i = 0; i < sala.votosAzul; i++) {
+                await new Promise(resolve => {
+                    animarVoto(salaId, CANDIDATA_AZUL);
+                    setTimeout(resolve, 100);
+                });
+            }
+            
+            totalVermelho += sala.votosVermelho;
+            totalAzul += sala.votosAzul;
+            sala.enviado = true;
+            votosEnviados++;
+            
+            const pendentes = salas.filter(s => !s.enviado);
+            if (pendentes.length === 1 && votosEnviados === TOTAL_SALAS - 1) {
+                ultimaSala = pendentes[0];
+                votosReaisUltimaSala = {
+                    vermelho: ultimaSala.votosVermelho,
+                    azul: ultimaSala.votosAzul
+                };
+                
+                document.getElementById('statusAlert').innerHTML = `
+                    <i class="fas fa-exclamation-triangle text-warning"></i> 
+                    <strong>📬 ÚLTIMA SALA (Sala ${ultimaSala.id}) RECEBIDA!</strong><br>
+                    O diretor agora tem o poder de definir o resultado final.
+                `;
+                
+                document.getElementById('apuracaoFinalPanel').style.display = 'block';
+                document.getElementById('infoUltimaSala').innerHTML = `
+                    <strong>📊 Informação restrita ao diretor:</strong><br>
+                    Última sala (${ultimaSala.id}) votos reais: ${votosReaisUltimaSala.vermelho} 🔴 / ${votosReaisUltimaSala.azul} 🔵<br>
+                    Total parcial atual: ${totalVermelho} 🔴 / ${totalAzul} 🔵 (${Math.round((totalVermelho/(totalVermelho+totalAzul))*100)}% x ${Math.round((totalAzul/(totalVermelho+totalAzul))*100)}%)
+                `;
+                
+                renderizarSalas();
+            }
+            
+            atualizarPorcentagem();
+            atualizarStatusDiretor();
+            renderizarSalas();
+        }
+        
+        // ==================== APURAÇÃO FINAL - PODER SUPREMO ====================
+        function realizarApuracaoFinal() {
+            if (apuracaoFinalRealizada) {
+                alert("Apuração final já foi realizada!");
+                return;
+            }
+            
+            if (!ultimaSala) {
+                alert("Nenhuma última sala aguardando!");
+                return;
+            }
+            
+            const candidataVencedora = document.getElementById('selectVencedora').value;
+            const percentualDesejado = parseInt(document.getElementById('percentualFinal').value);
+            
+            // Total sem a última sala
+            const totalSemUltima = totalVermelho + totalAzul;
+            
+            // Votos atuais da candidata vencedora
+            let votosAtuaisVencedora = candidataVencedora === 'VERMELHA' ? totalVermelho : totalAzul;
+            
+            // Fórmula para calcular quantos votos a vencedora precisa para atingir o percentual desejado
+            // Queremos: (votosAtuaisVencedora + X) / (totalSemUltima + X) = percentualDesejado / 100
+            // Resolvendo para X:
+            // 100*(votosAtuaisVencedora + X) = percentualDesejado*(totalSemUltima + X)
+            // 100*votosAtuaisVencedora + 100X = percentualDesejado*totalSemUltima + percentualDesejado*X
+            // 100X - percentualDesejado*X = percentualDesejado*totalSemUltima - 100*votosAtuaisVencedora
+            // X*(100 - percentualDesejado) = percentualDesejado*totalSemUltima - 100*votosAtuaisVencedora
+            // X = (percentualDesejado*totalSemUltima - 100*votosAtuaisVencedora) / (100 - percentualDesejado)
+            
+            let votosNecessarios = (percentualDesejado * totalSemUltima - 100 * votosAtuaisVencedora) / (100 - percentualDesejado);
+            votosNecessarios = Math.ceil(votosNecessarios);
+            
+            // Garantir que seja pelo menos 1
+            votosNecessarios = Math.max(1, votosNecessarios);
+            
+            let novaVermelho, novoAzul;
+            if (candidataVencedora === 'VERMELHA') {
+                novaVermelho = votosNecessarios;
+                novoAzul = 0;
+            } else {
+                novaVermelho = 0;
+                novoAzul = votosNecessarios;
+            }
+            
+            // Animar os votos ajustados
+            for (let i = 0; i < novaVermelho; i++) {
+                setTimeout(() => animarVoto(ultimaSala.id, CANDIDATA_VERMELHA), i * 80);
+            }
+            for (let i = 0; i < novoAzul; i++) {
+                setTimeout(() => animarVoto(ultimaSala.id, CANDIDATA_AZUL), i * 80);
+            }
+            
+            // Aplicar os votos ajustados
+            totalVermelho += novaVermelho;
+            totalAzul += novoAzul;
+            
+            ultimaSala.votosVermelho = novaVermelho;
+            ultimaSala.votosAzul = novoAzul;
+            ultimaSala.totalVotos = novaVermelho + novoAzul;
+            ultimaSala.enviado = true;
+            
+            apuracaoFinalRealizada = true;
+            votosEnviados = TOTAL_SALAS;
+            
+            const totalFinal = totalVermelho + totalAzul;
+            const percentVermelhoFinal = Math.round((totalVermelho / totalFinal) * 100);
+            const percentAzulFinal = Math.round((totalAzul / totalFinal) * 100);
+            
+            const vencedoraFinal = totalVermelho > totalAzul ? "VERMELHA (Filha da Cumade)" : "AZUL";
+            
+            // Mensagem PÚBLICA (sem detalhes da manipulação)
+            document.getElementById('statusAlert').innerHTML = `
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-chart-line"></i> 
+                    <strong>✅ APURAÇÃO FINAL CONCLUÍDA!</strong><br>
+                    Resultado final: ${percentVermelhoFinal}% 🔴 x ${percentAzulFinal}% 🔵
+                    <br><span class="text-warning">🏆 ${vencedoraFinal} é a grande vencedora!</span>
+                </div>
+            `;
+            
+            document.getElementById('apuracaoFinalPanel').style.display = 'none';
+            document.getElementById('btnEncerrar').disabled = false;
+            
+            atualizarPorcentagem();
+            atualizarStatusDiretor();
+            renderizarSalas();
+            
+            // Animação de destaque na vencedora
+            setTimeout(() => {
+                const cardBeneficiada = totalVermelho > totalAzul ? 'cardVermelha' : 'cardAzul';
+                document.getElementById(cardBeneficiada).classList.add('vencedor-destaque');
+                setTimeout(() => {
+                    document.getElementById(cardBeneficiada).classList.remove('vencedor-destaque');
+                }, 1500);
+            }, 500);
+        }
+        
+        // ==================== ENCERRAR ELEIÇÃO ====================
+        function encerrarEleicao() {
+            if (!apuracaoFinalRealizada) {
+                alert("Aguardando apuração final da última sala!");
+                return;
+            }
+            
+            eleicaoEncerrada = true;
+            const totalFinal = totalVermelho + totalAzul;
+            const percentVermelho = Math.round((totalVermelho / totalFinal) * 100);
+            const percentAzul = Math.round((totalAzul / totalFinal) * 100);
+            const vencedor = totalVermelho > totalAzul ? "VERMELHA (Filha da Cumade)" : "AZUL";
+            
+            document.getElementById('statusAlert').innerHTML = `
+                <div class="alert alert-warning mb-0">
+                    <h5><i class="fas fa-crown"></i> RAINHA DA PRIMAVERA 2026: ${vencedor}!</h5>
+                    <strong>Resultado final oficial:</strong> ${percentVermelho}% 🔴 x ${percentAzul}% 🔵
+                </div>
+            `;
+            
+            document.getElementById('btnEncerrar').disabled = true;
+        }
+        
+        // ==================== LIMPAR VOTOS NÃO ENVIADOS ====================
+        function limparVotosSalas() {
+            if (confirm("⚠️ Limpar APENAS votos NÃO ENVIADOS das salas?")) {
+                salas.forEach(sala => {
+                    if (!sala.enviado && (!ultimaSala || sala.id !== ultimaSala.id)) {
+                        sala.votosVermelho = 0;
+                        sala.votosAzul = 0;
+                        sala.totalVotos = 0;
+                    }
+                });
+                renderizarSalas();
+                document.getElementById('statusAlert').innerHTML = '<i class="fas fa-info-circle"></i> Votos não enviados foram limpos.';
+            }
+        }
+        
+        // ==================== ATUALIZAR DISPLAYS ====================
+        function atualizarPorcentagem() {
+            const total = totalVermelho + totalAzul;
+            const pVermelho = total === 0 ? 0 : Math.round((totalVermelho / total) * 100);
+            const pAzul = total === 0 ? 0 : Math.round((totalAzul / total) * 100);
+            
+            document.getElementById('percentVermelho').innerText = `${pVermelho}%`;
+            document.getElementById('percentAzul').innerText = `${pAzul}%`;
+            document.getElementById('progressVermelho').style.width = `${pVermelho}%`;
+            document.getElementById('progressAzul').style.width = `${pAzul}%`;
+        }
+        
+        function atualizarStatusDiretor() {
+            const enviadas = salas.filter(s => s.enviado).length;
+            document.getElementById('diretorStatus').innerHTML = `
+                <small>📊 Enviadas: ${enviadas}/${TOTAL_SALAS}<br>
+                ${ultimaSala && !apuracaoFinalRealizada ? `⏳ Última sala: ${ultimaSala.id} aguardando decisão` : ''}
+                ${apuracaoFinalRealizada ? '🎯 Apuração final concluída' : ''}
+                ${!ultimaSala && !apuracaoFinalRealizada && enviadas < TOTAL_SALAS ? '📨 Enviando votos...' : ''}</small>
+            `;
+        }
+        
+        // ==================== SLIDER ====================
+        const slider = document.getElementById('percentualFinal');
+        const exibidor = document.getElementById('percentualExibido');
+        if (slider) {
+            slider.addEventListener('input', function() {
+                exibidor.innerText = this.value + '%';
+            });
+        }
+        
+        // ==================== EVENTOS ====================
+        document.getElementById('btnApuracaoFinal').addEventListener('click', realizarApuracaoFinal);
+        document.getElementById('btnEncerrar').addEventListener('click', encerrarEleicao);
+        document.getElementById('btnLimparVotos').addEventListener('click', limparVotosSalas);
+        
+        // ==================== INICIALIZAÇÃO ====================
+        function init() {
+            inicializarSalas();
+            inicializarCytoscape();
+            renderizarSalas();
+            atualizarPorcentagem();
+            atualizarStatusDiretor();
+        }
+        
+        init();
+    </script>
+</body>
+</html>
