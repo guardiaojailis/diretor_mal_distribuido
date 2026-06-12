@@ -1,8 +1,6 @@
 
 Simulador da Escolha da Rainha da Primavera - Conteúdo para fins didáticos somente.
 
-Abaixo está uma versão consolidada em **Markdown**, focada apenas nas etapas principais do processo de desenvolvimento, descartando as conversas intermediárias e preservando a evolução da ideia, as decisões arquiteturais, um trecho representativo de código e a versão final do sistema. As informações foram extraídas do documento enviado. 
-
 # Desenvolvimento de um Simulador de Eleição Distribuída: Rainha da Primavera 2026
 
 ## 1. Contexto Inicial
