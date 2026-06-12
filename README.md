@@ -23,7 +23,7 @@ Como exercício prático, foram solicitadas diversas ideias de projetos capazes 
 
 ## 2. Levantamento de Ideias
 
-Inicialmente foram propostas doze ideias de projetos envolvendo sistemas distribuídos, algoritmos de consenso, tolerância a falhas e agentes inteligentes.
+Inicialmente foram propostas doze idéias de projetos envolvendo sistemas distribuídos, algoritmos de consenso, tolerância a falhas e agentes inteligentes.
 
 Entre as propostas estavam:
 
@@ -33,11 +33,11 @@ Entre as propostas estavam:
 * Chat distribuído com memória inconsistente
 * Sistemas de votação distribuída
 
-A partir dessas sugestões surgiu uma ideia própria: desenvolver um sistema de votação eletrônica para a eleição da Rainha da Primavera de uma escola.
+A partir dessas sugestões surgiu uma idéia própria: desenvolver um sistema de votação eletrônica para a eleição da Rainha da Primavera de uma escola.
 
 ---
 
-## 3. Surgimento da Ideia da Rainha da Primavera
+## 3. Surgimento da Idéia da Rainha da Primavera
 
 O cenário imaginado foi o seguinte:
 
